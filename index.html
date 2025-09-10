@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Interaktiv karta - Organisationer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    body { margin: 0; display: flex; font-family: sans-serif; }
+    #sidebar { width: 320px; max-height: 100vh; overflow-y: auto; border-right: 1px solid #ccc; padding: 10px; box-sizing: border-box; }
+    #map { flex: 1; height: 100vh; }
+    .buttons button { margin: 3px; padding: 5px 10px; cursor: pointer; }
+    ul { list-style: none; padding-left: 0; }
+    li { margin: 6px 0; cursor: pointer; }
+    li:hover { text-decoration: underline; }
+    .legend { margin-top: 8px; font-size: 0.9em; }
+    .legend span { display: inline-block; width:12px; height:12px; margin-right:6px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h2>Organisationer</h2>
+    <div class="buttons">
+      <button onclick="filterCategory('Alla')">Alla</button>
+      <button onclick="filterCategory('Näringsliv')">Näringsliv</button>
+      <button onclick="filterCategory('Offentlig sektor')">Offentlig sektor</button>
+      <button onclick="filterCategory('Universitet, utbildning & forskning')">Utbildning</button>
+      <button onclick="filterCategory('Samarbeten')">Samarbeten</button>
+      <button onclick="filterCategory('Civilsamhället kultur/sport')">Civilsamhället</button>
+      <button onclick="filterCategory('Finansiering & nätverk')">Finansiering</button>
+    </div>
+    <div class="legend">
+      <div><span style="background:red"></span> Röd = Näringsliv</div>
+      <div><span style="background:blue"></span> Blå = Offentlig sektor</div>
+      <div><span style="background:yellow"></span> Gul = Universitet, utbildning & forskning</div>
+      <div><span style="background:green"></span> Grön = Samarbeten</div>
+      <div><span style="background:orange"></span> Orange = Civilsamhället kultur/sport</div>
+      <div><span style="background:purple"></span> Lila = Finansiering & nätverk</div>
+    </div>
+    <h3 id="list-title">Alla</h3>
+    <ul id="org-list"></ul>
+    <p style="font-size:0.9em;color:#555">Klicka på en organisation för att zooma till dess markör på kartan.</p>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([63.0, 12.0], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Datapunkter (genererade från Excel)
+    const data = [
+      {kategori: "Näringsliv", org: "Samling Näringsliv", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "IUC Jämtland Härjedalen", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Handelskammaren Mitt", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Företagarna", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Jämtland Härjedalen Turism (JHT)", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Svenskt Näringsliv Jämtland", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Nyföretagarcentrum", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Lantbrukarnas riksorganisation (LRF)", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Peak Inkubator", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "NHO Næringslivets Hovedorganisasjon", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Næringsforeningen i Trondheimsregionen (NiT)", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Innherred Næringsforening", lat: 64.01519, lon: 11.49526, farg: "red"},
+      {kategori: "Näringsliv", org: "Rørosregionen Næringshage", lat: 62.5747, lon: 11.3842, farg: "red"},
+      {kategori: "Näringsliv", org: "Nasjonalparken Næringshage", lat: 62.5747, lon: 11.3842, farg: "red"},
+      {kategori: "Näringsliv", org: "FI Næringshage", lat: 64.01519, lon: 11.49526, farg: "red"},
+      {kategori: "Näringsliv", org: "Tindved Kulturhage", lat: 64.01519, lon: 11.49526, farg: "red"},
+      {kategori: "Näringsliv", org: "Næringshagen Hitra og Frøya", lat: 63.5453, lon: 8.932, farg: "red"},
+      {kategori: "Näringsliv", org: "Blått Kompetansesenter AS", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Nasjonalparken Næringshage", lat: 62.5747, lon: 11.3842, farg: "red"},
+      {kategori: "Näringsliv", org: "INAM AS (Innovasjon Namdal)", lat: 64.4662, lon: 11.4957, farg: "red"},
+      {kategori: "Näringsliv", org: "Thams Innovasjon AS", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Naeringsforeningen i Vaernesregionen", lat: 63.4669, lon: 11.1863, farg: "red"},
+      {kategori: "Näringsliv", org: "Proneo", lat: 64.01519, lon: 11.49526, farg: "red"},
+      {kategori: "Näringsliv", org: "Fremtidens Industri AS (FI)", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Trøndelag Reiseliv", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Nordsec (tidigare Midsec)", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Industrinavet i Trøndelag", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "RENERGY – Renewable Energy Cluster", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "WoodWorks! Cluster", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Offentlig sektor", org: "Statsforvalteren", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Helse Midt-Norge RHF", lat: 64.01519, lon: 11.49526, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Statens vägvesende", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Politi", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Tolletaten", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "NAV", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Försvarskoordinatorn Trøndelag", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Kommunförbundet Trøndelag", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Skatteetaten", lat: 63.44683, lon: 10.42191, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Länsstyrelsen", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Arbetsförmedlingen", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Polisen", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Försäkringskassan", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Tullverket", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Skatteverket", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Almi", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Kommunförbundet JH", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Sametinget", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Offentlig sektor", org: "Samverket/Myndighetsnätverket", lat: 63.17917, lon: 14.63583, farg: "blue"},
+      {kategori: "Utbildning", org: "Mittuniversitetet (MIUN)", lat: 63.17917, lon: 14.63583, farg: "yellow"},
+      {kategori: "Utbildning", org: "Hushållningssällskapet", lat: 63.17917, lon: 14.63583, farg: "yellow"},
+      {kategori: "Utbildning", org: "Torsta AB", lat: 63.0, lon: 14.5, farg: "yellow"},
+      {kategori: "Utbildning", org: "Norwegian University of Science and Technology NTNU", lat: 63.44683, lon: 10.42191, farg: "yellow"},
+      {kategori: "Utbildning", org: "NTNU:s Næringslivsringer", lat: 63.44683, lon: 10.42191, farg: "yellow"},
+      {kategori: "Utbildning", org: "Dronning Mauds Minne Høgskole DMMH", lat: 63.44683, lon: 10.42191, farg: "yellow"},
+      {kategori: "Utbildning", org: "Nord universitet (Campus Levanger, Steinkjer och Namsos)", lat: 63.7464, lon: 11.2941, farg: "yellow"},
+      {kategori: "Utbildning", org: "Sintef", lat: 63.44683, lon: 10.42191, farg: "yellow"},
+      {kategori: "Utbildning", org: "Falstadsenteret", lat: 63.65, lon: 11.2833, farg: "yellow"},
+      {kategori: "Samarbeten", org: "Gränsräddningsrådet Nordred", lat: 59.3293, lon: 18.0686, farg: "green"},
+      {kategori: "Samarbeten", org: "Samarbete mellan polisen", lat: 61.823, lon: 12.038, farg: "green"},
+      {kategori: "Samarbeten", org: "Tullsamarbete (Storlien och Vauldalen)", lat: 63.33, lon: 12.1167, farg: "green"},
+      {kategori: "Samarbeten", org: "Platform North", lat: 63.17917, lon: 14.63583, farg: "green"},
+      {kategori: "Samarbeten", org: "Atlantbanan", lat: 63.44683, lon: 10.42191, farg: "green"},
+      {kategori: "Samarbeten", org: "Föreningen Norden i Östersund", lat: 63.17917, lon: 14.63583, farg: "green"},
+      {kategori: "Samarbeten", org: "Föreningen Norden i Trondheim", lat: 63.44683, lon: 10.42191, farg: "green"},
+      {kategori: "Finansiering", org: "Interreg Sverige Norge Nordens gröna bälte", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Finansiering", org: "Interreg Aurora", lat: 65.5848, lon: 22.1567, farg: "purple"},
+      {kategori: "Finansiering", org: "Innovation Norge ", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Finansiering", org: "Leader Grogrund", lat: 63.3667, lon: 14.5833, farg: "purple"},
+      {kategori: "Finansiering", org: "Leader 3Sam", lat: 62.8333, lon: 15.1667, farg: "purple"},
+      {kategori: "Finansiering", org: "Leader Mittland Plus", lat: 62.3908, lon: 17.3069, farg: "purple"},
+      {kategori: "Finansiering", org: "Region JH", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Finansiering", org: "Trøndelag fylkeskommune", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Finansiering", org: "Tillväxtverket", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Finansiering", org: "ESF-rådet Mellersta Norrland", lat: 60.6749, lon: 17.1413, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Bærekraftsnettverket i Trøndelag", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Work in Trondheim", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Meetup – Nätverksträffar i Trondheim", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Digs Incubator Trondheim", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "StartupTRD", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "BNI Executive Trondheim", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Trondheim Tech Port", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Connect Midt Norge", lat: 63.44683, lon: 10.42191, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "The Power Region", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Driv Innovation", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Vindkraftcentrum", lat: 63.1833, lon: 14.4167, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Business Region MidSweden", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "BNI City Östersund", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Gomorron / The remote lab", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Ta Steget", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Partnerskap Mittstråket", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "House Bee", lat: 63.4167, lon: 13.0833, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "E14 Invest", lat: 63.4167, lon: 13.0833, farg: "purple"},
+      {kategori: "Samarbeten/Nätverk", org: "Nätverket Kompetensattraktion Jämtland", lat: 63.17917, lon: 14.63583, farg: "purple"},
+      {kategori: "Näringsliv", org: "Uniper", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Näringsliv", org: "Aneo", lat: 63.44683, lon: 10.42191, farg: "red"},
+      {kategori: "Näringsliv", org: "Ritek", lat: 63.7464, lon: 11.2941, farg: "red"},
+      {kategori: "Näringsliv", org: "Persson Invest", lat: 63.17917, lon: 14.63583, farg: "red"},
+      {kategori: "Kultur", org: "Trøndelag Kulturkrets", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Kulturkontakt Trondheim", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Trøndelag Teater", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Rockheim", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Museene i Sør-Trøndelag", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Stiklestad Nasjonale Kultursenter", lat: 63.746, lon: 10.968, farg: "orange"},
+      {kategori: "Kultur", org: "Stiftinga Hilmar Alexandersen", lat: 64.01519, lon: 11.49526, farg: "orange"},
+      {kategori: "Kultur", org: "Saemien Sijte", lat: 64.0, lon: 12.0, farg: "orange"},
+      {kategori: "Kultur", org: "Gaaltije", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Jamtli", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Heimbygda", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Föreningsarkivet i Jämtlands län", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "RF-SISU Jämtland-Härjedalen", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "SPF Seniorerna Jämtland-Härjedalen", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Kultur i Jämtland Härjedalen", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Samarbeten/Nätverk", org: "Grensetjänsten", lat: 59.95, lon: 11.5, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Business Sweden ", lat: 59.3293, lon: 18.0686, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Svenska ambassaden i Oslo", lat: 59.9127, lon: 10.7461, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Norska ambassaden i Stockholm", lat: 59.3293, lon: 18.0686, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Norsksvenska handelskammaren", lat: 59.9127, lon: 10.7461, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Sveriges generalkonsul i Trondheim", lat: 63.44683, lon: 10.42191, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Nordiska ministerrådet", lat: 55.6761, lon: 12.5683, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Nordiska rådet", lat: 55.6761, lon: 12.5683, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Gränshinderrådet", lat: 55.6761, lon: 12.5683, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Europaforum Norra Sverige (EFNS)", lat: 63.17917, lon: 14.63583, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Northern Sparsely Populated Areas-nätverket (NSPA)", lat: 50.8503, lon: 4.3517, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Trøndelag Europakontor", lat: 50.8503, lon: 4.3517, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "North Sweden European Office", lat: 50.8503, lon: 4.3517, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "ARKO-samarbetet", lat: 60.1944, lon: 12.9639, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Bothnian Arc (Bottenviksbågen)", lat: 65.8333, lon: 24.1333, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Gränskommittén Innlandet-Dalarna", lat: 60.607, lon: 15.625, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Grensekomiteen Värmland-Østfold", lat: 59.4667, lon: 11.2167, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Greater Copenhagen (tidigare Öresundskommittén)", lat: 55.6761, lon: 12.5683, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Kvarkenrådet", lat: 63.8258, lon: 20.263, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Midtskandia", lat: 65.7833, lon: 15.0, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Nordkalottrådet", lat: 65.5848, lon: 22.1567, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Nordiska Skärgårdssamarbetet", lat: 60.1167, lon: 22.0, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Svinesundskommittén", lat: 58.9194, lon: 11.1694, farg: "green"},
+      {kategori: "Samarbeten/Nätverk", org: "Tornedalsrådet/Tornionlaakson neuvosto", lat: 65.8333, lon: 24.1333, farg: "green"},
+      {kategori: "Kultur", org: "Elden", lat: 2.5747, lon: 11.3842, farg: "orange"},
+      {kategori: "Kultur", org: "Rørosmartnan", lat: 2.5747, lon: 11.3842, farg: "orange"},
+      {kategori: "Kultur", org: "Olavsfest", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Basta – Litteraturhuset i Trondheim", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Pstereo", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Trondheim Rocks", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Jazzfest", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "NEON Festivalen", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Festningen", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Steinkjerfestivalen", lat: 64.01519, lon: 11.49526, farg: "orange"},
+      {kategori: "Kultur", org: "Trøndersk Matfestival", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Trondheim Bryggerifestival", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Kultur", org: "Stiklestadspelet – Spelet om Heilag Olav", lat: 63.7675, lon: 11.4975, farg: "orange"},
+      {kategori: "Kultur", org: "Kortreist Dansefestival", lat: 63.9667, lon: 11.3667, farg: "orange"},
+      {kategori: "Kultur", org: "Funäs Festival", lat: 62.5667, lon: 12.5, farg: "orange"},
+      {kategori: "Kultur", org: "Jamtli Vårmarknad", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Jamtli Julmarknad", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Härdalsyran & Härdalsveckan", lat: 61.8333, lon: 14.2, farg: "orange"},
+      {kategori: "Kultur", org: "Musikkväll på Kalfjäll", lat: 62.5, lon: 12.3, farg: "orange"},
+      {kategori: "Kultur", org: "Kulturting Norr", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Storsjöyran", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Kul Tur", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Kultur", org: "Åre Sessions", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Kultur", org: "Musikkväll vid Åresjön", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Kultur", org: "Västgård Game Fair", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Kultur", org: "Åre Höstmarknad", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Sport", org: "Meråkerrennet", lat: 63.1833, lon: 11.4333, farg: "orange"},
+      {kategori: "Sport", org: "Norgescup Skiskyting", lat: 63.1833, lon: 11.4333, farg: "orange"},
+      {kategori: "Sport", org: "Erik Håker Cup", lat: 62.6, lon: 9.65, farg: "orange"},
+      {kategori: "Sport", org: "Knykenlekene (barn- och ungdomsfestival)", lat: 63.0, lon: 9.0, farg: "orange"},
+      {kategori: "Sport", org: "Trondheim Maraton", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Sport", org: "Lånkebanen Rallycross (NM och internationella tävlingar)", lat: 63.4667, lon: 10.9167, farg: "orange"},
+      {kategori: "Sport", org: "Skandia Cup (fotbollsturnering för barn & ungdom)", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Sport", org: "Trondheimslekene", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Sport", org: "Rennebumartnan Skisprint (del av lokal skidhelg)", lat: 62.8, lon: 9.5, farg: "orange"},
+      {kategori: "Sport", org: "Julecup i Håndball", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Sport", org: "Leangen Travbanes stora travhelger ", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Sport", org: "Birkebeiner-rennet på Røros/Trøndelag", lat: 62.5747, lon: 11.3842, farg: "orange"},
+      {kategori: "Sport", org: "Storsjöcupen", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Sport", org: "Bruksvallsloppet", lat: 62.6167, lon: 12.6167, farg: "orange"},
+      {kategori: "Sport", org: "Fjälltopploppet", lat: 62.6167, lon: 12.6167, farg: "orange"},
+      {kategori: "Sport", org: "St Olavsloppet", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Sport", org: "Vårruset", lat: 63.17917, lon: 14.63583, farg: "orange"},
+      {kategori: "Sport", org: "Åre Bike Festival", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Sport", org: "Fjällmaratonveckan", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Sport", org: "Red Bull GIBAWAY", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Sport", org: "Vemdalsslalom (ungdom)", lat: 62.75, lon: 14.0, farg: "orange"},
+      {kategori: "Sport", org: "Skistar Winter Games (ungdom)", lat: 62.75, lon: 14.0, farg: "orange"},
+      {kategori: "Sport", org: "Damernas/Herrarnas alpina världscup", lat: 63.4167, lon: 13.0833, farg: "orange"},
+      {kategori: "Sport", org: "Trondheim Skishow", lat: 63.44683, lon: 10.42191, farg: "orange"},
+      {kategori: "Sport", org: "Granåsen NC / FIS Races", lat: 63.44683, lon: 10.42191, farg: "orange"},
+    ];
+
+    const markers = data.map(d => {
+      const marker = L.circleMarker([d.lat, d.lon], {
+        color: d.farg,
+        radius: 7,
+        weight:1,
+        fillOpacity: 0.9
+      }).bindPopup(`<b>${d.org}</b><br>${d.kategori}`);
+      marker.kategori = d.kategori;
+      marker.org = d.org;
+      marker.latlng = [d.lat, d.lon];
+      marker.addTo(map);
+      return marker;
+    });
+
+    const orgList = document.getElementById('org-list');
+    const listTitle = document.getElementById('list-title');
+
+    function filterCategory(category) {
+      orgList.innerHTML = "";
+      listTitle.textContent = category;
+      markers.forEach(m => {
+        if (category === 'Alla' || matchCategory(category, m.kategori)) {
+          map.addLayer(m);
+          const li = document.createElement('li');
+          li.textContent = m.org;
+          li.onclick = () => {
+            map.setView(m.latlng, 10);
+            m.openPopup();
+          };
+          orgList.appendChild(li);
+        } else {
+          map.removeLayer(m);
+        }
+      });
+    }
+
+    // Hjälpfunktion för att matcha kategori-text (för att hantera korta etiketter)
+    function matchCategory(buttonCategory, markerCategory) {
+      // normalize both
+      const a = buttonCategory.toLowerCase();
+      const b = (markerCategory || '').toLowerCase();
+      if (a === 'universitet, utbildning & forskning') {
+        return b.includes('utbild') || b.includes('universitet') || b.includes('forsk');
+      }
+      if (a === 'civilsamhället kultur/sport') {
+        return b.includes('civils') || b.includes('kultur') || b.includes('sport');
+      }
+      if (a === 'finansiering & nätverk') {
+        return b.includes('finans') || b.includes('nätverk') || b.includes('innovation');
+      }
+      return b.includes(a.split(' ')[0]); // enkel match på första ordet
+    }
+
+    // Visa alla som startläge
+    filterCategory('Alla');
+  </script>
+</body>
+</html>
